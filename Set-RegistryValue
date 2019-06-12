@@ -1,0 +1,56 @@
+Function Set-RegistryValue {
+    Param (
+        $Path,
+        $Name,
+        $Type,
+        $Value,
+        $Credentials
+    )
+
+    If($Credentials -eq $null) {
+
+        New-PSDrive -PSProvider Registry -Name HKU -Root HKEY_USERS | Out-Null
+        New-PSDrive -PSProvider Registry -Name HKCR -Root HKEY_CLASSES_ROOT | Out-Null
+        New-PSDrive -PSProvider Registry -Name HKCC -Root HKEY_CURRENT_CONFIG | Out-Null
+
+        $Path = $Path -replace 'HKLM', 'HKLM:' -replace 'HKEY_LOCAL_MACHINE', 'HKLM:'
+        $Path = $Path -replace 'HKCU', 'HKCU:' -replace 'HKEY_CURRENT_USER', 'HKCU:'
+        $Path = $Path -replace 'HKCR', 'HKCR:' -replace 'HKEY_CLASSES_ROOT', 'HKCR:'
+        $Path = $Path -replace 'HKU', 'HKU:' -replace 'HKEY_CLASSES_ROOT', 'HKCR:'
+
+        IF(!(Test-Path $Path)) {
+            New-Item -Path $Path -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -Force | Out-Null
+            New-ItemProperty -Path $Path -Name $name -Value $value -PropertyType $Type  -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -Force | Out-Null
+        } ELSE {
+            New-ItemProperty -Path $Path -Name $name -Value $value -PropertyType $Type -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -Force | Out-Null
+        }
+
+        $PropertyValue = $(Get-ItemProperty $Path -Name $Name -WarningAction SilentlyContinue -ErrorAction SilentlyContinue).$Name
+        If ($PropertyValue -ne $Value) {
+            Set-ItemProperty -Path $Path -Name $Path -Value $Value -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
+        }
+        $(Get-ItemProperty $Path -Name $Name -WarningAction SilentlyContinue -ErrorAction SilentlyContinue).$Name -eq $Value
+    } Else {
+        New-PSDrive -PSProvider Registry -Name HKU -Root HKEY_USERS -Credential $Credentials | Out-Null
+        New-PSDrive -PSProvider Registry -Name HKCR -Root HKEY_CLASSES_ROOT -Credential $Credentials | Out-Null
+        New-PSDrive -PSProvider Registry -Name HKCC -Root HKEY_CURRENT_CONFIG -Credential $Credentials | Out-Null
+
+        $Path = $Path -replace 'HKLM', 'HKLM:' -replace 'HKEY_LOCAL_MACHINE', 'HKLM:'
+        $Path = $Path -replace 'HKCU', 'HKCU:' -replace 'HKEY_CURRENT_USER', 'HKCU:'
+        $Path = $Path -replace 'HKCR', 'HKCR:' -replace 'HKEY_CLASSES_ROOT', 'HKCR:'
+        $Path = $Path -replace 'HKU', 'HKU:' -replace 'HKEY_CLASSES_ROOT', 'HKCR:'
+
+        IF(!(Test-Path $Path)) {
+            New-Item -Path $Path -Force  -Credential $Credentials -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+            New-ItemProperty -Path $Path -Name $name -Value $value -PropertyType $Type -Force -Credential $Credentials -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+        } ELSE {
+            New-ItemProperty -Path $Path -Name $name -Value $value -PropertyType $Type -Force -Credential $Credentials -WarningAction SilentlyContinue -ErrorAction SilentlyContinue | Out-Null
+        }
+
+        $PropertyValue = $(Get-ItemProperty $Path -Name $Name -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -Credential $Credentials).$Name
+        If ($PropertyValue -ne $Value) {
+            Set-ItemProperty -Path $Path -Name $Path -Value $Value -Credential $Credentials -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
+        }
+        $(Get-ItemProperty $Path -Name $Name -WarningAction SilentlyContinue -ErrorAction SilentlyContinue -Credential $Credentials).$Name -eq $Value
+    }
+}
